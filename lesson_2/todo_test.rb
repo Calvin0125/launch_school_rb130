@@ -1,8 +1,10 @@
+require 'simplecov'
+SimpleCov.start
 require 'minitest/autorun'
 require "minitest/reporters"
 Minitest::Reporters.use!
 
-require_relative '../lesson_1/todo'
+require_relative 'todo.rb'
 
 class TodoListTest < MiniTest::Test
 
@@ -94,6 +96,14 @@ class TodoListTest < MiniTest::Test
     assert_raises(IndexError) { @list.mark_undone_at(25) }
   end
 
+  def test_mark_all_undone
+    @list.done!
+    @list.mark_all_undone
+    refute(@todo1.done?)
+    refute(@todo2.done?)
+    refute(@todo3.done?)
+  end
+
   def test_done!
     @list.done!
     assert(@todo1.done?)
@@ -109,13 +119,73 @@ class TodoListTest < MiniTest::Test
   end
 
   def test_to_s
-    output = <<~OUTPUT.chomp
+    output = <<~OUTPUT
     ------- Today's Todos -------
     [ ] Buy milk
     [ ] Clean room
     [ ] Go to gym
     OUTPUT
-    
+
     assert_equal(output, @list.to_s)
+  end
+
+  def test_to_s_with_done
+    output = <<~OUTPUT
+    ------- Today's Todos -------
+    [X] Buy milk
+    [ ] Clean room
+    [ ] Go to gym
+    OUTPUT
+
+    @list.mark_done_at(0)
+    assert_equal(output, @list.to_s)
+  end
+
+  def test_to_s_all_done
+    output = <<~OUTPUT
+    ------- Today's Todos -------
+    [X] Buy milk
+    [X] Clean room
+    [X] Go to gym
+    OUTPUT
+
+    @list.done!
+    assert_equal(output, @list.to_s)
+  end
+
+  def test_each_iterates
+    new_todos = []
+    @list.each { |todo| new_todos << todo }
+    assert_equal(@todos, new_todos)
+  end
+
+  def test_each_return_value
+    assert_equal(@list, @list.each { 'do nothing' })
+  end
+
+  def test_select
+    @list.mark_done_at(1)
+    done = @list.select(&:done?)
+    assert_equal([@todo2], done.to_a)
+  end
+
+  def test_find_by_title
+    assert_equal(@todo2, @list.find_by_title("Clean room"))
+  end
+
+  def test_all_done
+    @todo1.done!
+    @todo3.done!
+    assert_equal([@todo1, @todo3], @list.all_done.to_a)
+  end
+
+  def test_all_not_done
+    @todo2.done!
+    assert_equal([@todo1, @todo3], @list.all_not_done.to_a)
+  end
+
+  def test_mark_done
+    @list.mark_done("Buy milk")
+    assert(@todo1.done!)
   end
 end
